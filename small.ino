@@ -1,24 +1,26 @@
 #include <Wire.h>
 
 //constants
-int l_speed = 10;
-int l_plus = 9;
-int l_minus = 8;
+#define l_speed  10
+#define l_plus  9
+#define l_minus  8
 
-int r_speed = 5;
-int r_plus = 7;
-int r_minus = 6;
+#define r_speed   5
+#define r_plus  7
+#define r_minus  6
 
-int left_engine = 0; 
-int right_engine = 1;
-int dEngine = 2;
+#define left_engine  0 
+#define right_engine  1
+#define dEngine  2
 
 //commands
-int STOP = 0;
-int FORWARD = 42;
-int BACKWARD = 41;
+#define STOP 0
+#define FORWARD  42
+#define BACKWARD  41
 
 int state = STOP;
+int leftEngineState = STOP;
+int rightEngineState = STOP;
 
 int readVal(char &check){
   int tmp = Serial.read();
@@ -53,26 +55,20 @@ void engine(int _engine, int type = FORWARD){
   if(type == FORWARD){
     digitalWrite(engine_plus, LOW);
     digitalWrite(engine_minus,HIGH);
+    
   } else {
     digitalWrite(engine_plus, HIGH);
     digitalWrite(engine_minus, LOW);
+    
   }
   if(_engine == dEngine)
     engine(left_engine, type);
 }
 
-
 void eMove(int _engine = dEngine, int type = FORWARD,  int val = 0){
-  if(state != FORWARD) {
-    engine(_engine, FORWARD);
-    state = FORWARD;
-  }
-  else {
-    engine(_engine, BACKWARD);
-    state = BACKWARD;
-  }
-  digitalWrite(l_speed,val);
-  digitalWrite(r_speed,val);
+  engine(_engine, type);
+  if(_engine != left_engine) analogWrite(r_speed,val);
+  if((_engine == left_engine) || (_engine == dEngine)) analogWrite(l_speed,val);
 }
 
 void command_handler(char check, int tmp){
@@ -106,5 +102,31 @@ void loop() {
     int tmp = readVal(check);
     Serial.println(String(check) + " " + String(tmp));
     command_handler(check, tmp);
+  }
+}
+
+void test(){
+  int tmp = 20;
+  while (true){
+    for(int i = 0; i <= 100; ++i){
+      command_handler('s',i);
+      delay(tmp);
+    }
+    for(int i = 100; i >= 0; --i){
+      command_handler('s',i);
+      delay(tmp);
+    }
+    for(int i = 0; i >-100; --i){
+      command_handler('s',i);
+      delay(tmp);
+    }
+    for(int i = -100; i <= 0; ++i){
+      command_handler('s',i);
+      delay(tmp);
+    }
+    command_handler('r',100);
+    delay(2000);
+    command_handler('r',-100);
+    delay(2000);
   }
 }
