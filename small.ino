@@ -35,6 +35,8 @@ int readVal(char &command){
   return tmp;
 }
 
+void  handleCommand(char, int);
+
 void readCommands(){
   if(Serial.available() > 0){
     char command;
@@ -64,7 +66,6 @@ void correctPosition(int32_t &attachedSensorDistance, int speedRotation = 70, in
    int rLim = 55;
    int lLim = 48;
    for(int i=0; i<rLim; ++i){
-      //state = STOP; ///***detailed attention***///
       bool res = measurementsWhileRotate(sensorMinValue, attachedSensorDistance, delayTime, speedRotation);
       Move(STOP); ///***detailed attention ***///
       ++metricSensorCount;
@@ -135,6 +136,53 @@ void moveToHand(){
 }
 
 
+
+void twoSensorsRotate(int32_t &attachedSensorA, int32_t &attachedSensorB, int speedRotate = 80, int accuracy = 5){
+  updateSensorData();
+  while((attachedSensorA == -1 || attachedSensorB == -1) || abs(attachedSensorA - attachedSensorB) > accuracy){
+    updateSensorData();
+    Rotation(speedRotate);
+  }
+  Move(STOP);
+}
+
+void upgradedScript2(int32_t &attachedSensorA, int32_t &attachedSensorB, int sensorsDelta = 10){
+  while(true){
+    readCommands();
+    if(F_distance < 30 && F_distance!=-1){
+        Move(STOP);
+        control_state = CONTROL_MANUAL;
+    }
+    if (control_state != CONTROL_SCRIPT)
+      return;
+    updateSensorData();
+    if(attachedSensorB != -1 && attachedSensorA != -1){
+        int speedRotate = attachedSensorB < attachedSensorA ? -80 : 80;
+        twoSensorsRotate(attachedSensorA, attachedSensorB, speedRotate, 5);
+        /*if(abs(attachedSensorA < attachedSensorB) > sensorsDelta){
+          twoSensorsRotate(attachedSensorA, attachedSensorB, speedRotate, 2);
+          while((attachedSensorA == -1 || attachedSensorB == -1))
+            updateSensorData();
+          if(attachedSensorA < 50){
+            Rotation(80);
+            delay(2000);
+            Move(STOP);
+            Move(BACKWARD);
+            delay(200);
+          } else if (attachedSensorB < 50){
+            Rotation(80);
+            delay(2000);
+            Move(STOP);
+            Move(BACKWARD);
+            delay(200);
+          }*/
+          //twoSensorsRotate(attachedSensorA, attachedSensorB, speedRotate);
+        //}
+    }   
+    Move(FORWARD);
+  }
+}
+
 #define ROTATION 2
 #define MOVE 3
 
@@ -204,7 +252,9 @@ void handleCommand(char command, int value){
       control_state = CONTROL_SCRIPT;
       //moveToHand();
       //correctPosition(F_distance);
-      upgradedScript(L_distance);
+      //upgradedScript(L_distance);
+      //twoSensorsRotate(R_distance, L_distance);
+      upgradedScript2(L_distance, R_distance);
     }
   } else {
     if(command == 'w'){
@@ -223,6 +273,9 @@ void setup() {
   
   Serial.begin(115200);
 }
+
+int reg = 0;
+uint32_t _time = millis();
 
 void loop() {
   readCommands();
